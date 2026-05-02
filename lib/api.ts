@@ -21,7 +21,7 @@ const BASE_URL = 'https://jsonplaceholder.typicode.com';
 
 export async function getUsers(): Promise<User[]> {
 	const res = await fetch(`${BASE_URL}/users`, {
-		cache: 'no-store',
+		next: { revalidate: 60 },
 	});
 
 	if (!res.ok) {
@@ -33,11 +33,11 @@ export async function getUsers(): Promise<User[]> {
 
 export async function getUser(id: string): Promise<User> {
 	const res = await fetch(`${BASE_URL}/users/${id}`, {
-		cache: 'no-store',
+		next: { revalidate: 60 },
 	});
 
 	if (res.status === 404) {
-		throw new Error('Failed to fetch user');
+		throw new Error('User not found');
 	}
 
 	if (!res.ok) {
@@ -54,13 +54,21 @@ export async function getUser(id: string): Promise<User> {
 }
 
 export async function getPosts() {
-	const res = await fetch(`${BASE_URL}/posts`, { cache: 'no-store' });
+	const res = await fetch(`${BASE_URL}/posts`, {
+		next: { revalidate: 60 },
+	});
+
 	if (!res.ok) throw new Error('Failed to fetch posts');
+
 	return res.json();
 }
 
 export async function getTodos() {
-	const res = await fetch(`${BASE_URL}/todos`, { cache: 'no-store' });
+	const res = await fetch(`${BASE_URL}/todos`, {
+		next: { revalidate: 60 },
+	});
+
 	if (!res.ok) throw new Error('Failed to fetch todos');
+
 	return res.json();
 }

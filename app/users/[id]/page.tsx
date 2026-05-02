@@ -1,4 +1,4 @@
-import { getUser } from '@/lib/api';
+import { getUser, getPosts, getTodos } from '@/lib/api';
 import Link from 'next/link';
 
 type Props = {
@@ -42,13 +42,21 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function UserDetailPage({ params }: Props) {
 	const { id } = await params;
-	const user: User = await getUser(id);
+
+	const [user, posts, todos] = await Promise.all([
+		getUser(id),
+		getPosts(),
+		getTodos(),
+	]);
+
+	const userPosts = posts.filter((p: any) => p.userId === user.id).slice(0, 5);
+	const userTodos = todos.filter((t: any) => t.userId === user.id).slice(0, 5);
 
 	return (
 		<div className="min-h-screen bg-background">
 			<div className="max-w-4xl mx-auto px-4 py-10 space-y-6">
 				<div className="flex items-center justify-between">
-					<Link href="/" className="text-primary hover:underline">
+					<Link href="/users" className="text-primary hover:underline">
 						← Back to list
 					</Link>
 				</div>
@@ -98,6 +106,27 @@ export default async function UserDetailPage({ params }: Props) {
 									{user.address.city}, {user.address.zipcode}
 								</p>
 							</Section>
+							<div className="grid md:grid-cols-2 gap-6">
+								<Section title="Posts">
+									<div className="space-y-2">
+										{userPosts.map((post: any) => (
+											<div key={post.id}>
+												<p className="font-medium">{post.title}</p>
+											</div>
+										))}
+									</div>
+								</Section>
+
+								<Section title="Todos">
+									<div className="space-y-2">
+										{userTodos.map((todo: any) => (
+											<div key={todo.id}>
+												<p>{todo.title}</p>
+											</div>
+										))}
+									</div>
+								</Section>
+							</div>
 						</div>
 					</div>
 				</div>

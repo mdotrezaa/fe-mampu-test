@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.100.6",
@@ -27,9 +30,10 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "jest": "^30.3.0",
-    "postcss": "^8.5.13",
-    "tailwindcss": "^4.2.4",
+    "jest-environment-jsdom": "^30.3.0",
+    "tailwindcss": "^4",
     "ts-jest": "^29.4.9",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

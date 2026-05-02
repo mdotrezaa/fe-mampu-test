@@ -22,7 +22,7 @@ export default function Error() {
 
 					<div className="flex flex-col sm:flex-row gap-3 justify-center">
 						<Link
-							href="/"
+							href="/users"
 							className="px-4 py-2 rounded-lg border hover:bg-muted"
 						>
 							Back to list
