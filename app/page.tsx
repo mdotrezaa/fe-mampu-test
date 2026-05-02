@@ -1,65 +1,160 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { getUsers, getPosts, getTodos } from '@/lib/api';
+
+export default function UsersPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [search, setSearch] = useState(searchParams.get('q') || '');
+  const [sort, setSort] = useState(searchParams.get('sort') || 'name');
+
+  const { data: users, isLoading: loadingUsers } = useQuery({
+    queryKey: ['users'],
+    queryFn: getUsers,
+  });
+
+  const { data: posts, isLoading: loadingPosts } = useQuery({
+    queryKey: ['posts'],
+    queryFn: getPosts,
+  });
+
+  const { data: todos, isLoading: loadingTodos } = useQuery({
+    queryKey: ['todos'],
+    queryFn: getTodos,
+  });
+
+  const isLoading = loadingUsers || loadingPosts || loadingTodos;
+
+  const enriched = useMemo(() => {
+    if (!users || !posts || !todos) return [];
+
+    return users.map((user) => {
+      const userPosts = posts.filter((p: { userId: number; }) => p.userId === user.id);
+      const userTodos = todos.filter((t: { userId: number; }) => t.userId === user.id);
+
+      const completed = userTodos.filter((t: { completed: any; }) => t.completed).length;
+      const pending = userTodos.length - completed;
+
+      return {
+        ...user,
+        postCount: userPosts.length,
+        completedTodos: completed,
+        pendingTodos: pending,
+      };
+    });
+  }, [users, posts, todos]);
+
+  const filtered = useMemo(() => {
+    let data = enriched;
+
+    if (search) {
+      data = data.filter((u) =>
+        `${u.name} ${u.email}`.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    if (sort === 'pending') {
+      data = [...data].sort((a, b) => b.pendingTodos - a.pendingTodos);
+    }
+
+    if (sort === 'posts') {
+      data = [...data].sort((a, b) => b.postCount - a.postCount);
+    }
+
+    return data;
+  }, [enriched, search, sort]);
+
+  function updateQuery(q: string, s: string) {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (s) params.set('sort', s);
+    router.push(`/?${params.toString()}`);
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <div className="min-h-screen bg-background">
+      <div className="max-w-6xl mx-auto px-4 py-10 space-y-6">
+        <div className="flex items-center justify-between bg-primary/10 rounded-2xl border border-primary/20 px-6 py-4">
+          <h1 className="text-2xl text-primary font-bold">User List</h1>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                updateQuery(e.target.value, sort);
+              }}
+              className="border border-border px-3 py-2 rounded-lg w-full bg-background"
+              placeholder="Search..."
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+            <select
+              value={sort}
+              onChange={(e) => {
+                setSort(e.target.value);
+                updateQuery(search, e.target.value);
+              }}
+              className="border border-border px-3 py-2 rounded-lg bg-background"
+            >
+              <option value="name">Sort by Name</option>
+              <option value="pending">Most Pending Todos</option>
+              <option value="posts">Most Posts</option>
+            </select>
+          </div>
         </div>
-      </main>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {isLoading &&
+            Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="border border-border rounded-xl p-4 space-y-3 animate-pulse"
+              >
+                <div className="h-4 w-40 bg-muted rounded" />
+                <div className="h-3 w-52 bg-muted rounded" />
+
+                <div className="space-y-2 pt-2">
+                  <div className="h-3 w-24 bg-muted rounded" />
+                  <div className="h-3 w-28 bg-muted rounded" />
+                  <div className="h-3 w-20 bg-muted rounded" />
+                </div>
+              </div>
+            ))}
+
+          {!isLoading &&
+            filtered.map((user) => (
+              <div
+                key={user.id}
+                onClick={() => router.push(`/users/${user.id}`)}
+                className="border border-border rounded-xl cursor-pointer hover:shadow-sm transition bg-white"
+              >
+                <div className="bg-primary/10 px-4 py-3">
+                  <h2 className="font-semibold text-primary">{user.name}</h2>
+                  <p className="text-sm text-muted-foreground break-all">
+                    {user.email}
+                  </p>
+
+                </div>
+
+                <div className="mt-3 text-sm space-y-1 px-4 pb-4">
+                  <p>Posts: {user.postCount}</p>
+                  <p>Completed: {user.completedTodos}</p>
+                  <p>Pending: {user.pendingTodos}</p>
+                </div>
+              </div>
+            ))}
+        </div>
+
+        {!isLoading && filtered.length === 0 && (
+          <p className="text-center text-muted-foreground">
+            No users found
+          </p>
+        )}
+      </div>
     </div>
   );
 }
